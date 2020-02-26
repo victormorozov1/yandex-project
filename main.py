@@ -3,15 +3,18 @@ import sys
 import pygame
 import os
 from convert_image import convert_image
+from elements.text_field import TextField
+from functions import *
 
 
 class Map:
-    def __init__(self, coords, z, z_change=1, move_scale=0.1):
+    def __init__(self, coords, z, screen, z_change=1, move_scale=0.1):
         self.coords = coords
         self.z = z
         self.z_change = z_change
-        self.screen = pygame.display.set_mode((600, 450))
         self.move_scale = move_scale
+        self.screen = screen
+        self.pt = []
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -40,7 +43,7 @@ class Map:
 
     def get_map(self):
         api_address = "https://static-maps.yandex.ru/1.x/?"
-        response = requests.get(f'{api_address}l=map&ll={self.coords}&z={self.z}')
+        response = requests.get(f'{api_address}l=map&ll={self.coords}&z={self.z}&pt={"~".join(self.pt)}')
         return convert_image(response.content)
 
     def move(self, delta_y, delta_x):
@@ -60,21 +63,36 @@ class Map:
         pygame.display.update()
 
 
-map = Map('54.689,55.879', '10')
 pygame.init()
+screen = pygame.display.set_mode((600, 450))
+map = Map('54.689,55.879', '10', screen)
+
+search_field = TextField(5, 5, 200, 30, (255, 255, 255), screen)
 
 is_running = True
 while is_running:
     map.draw()
+    search_field.draw()
+
     for event in pygame.event.get():
         map.handle_event(event)
         if event.type == pygame.QUIT:
             is_running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            search_field.click()
+        elif event.type == pygame.KEYDOWN:
+            search_field.key_down(event.key)
     pressed = pygame.key.get_pressed()
     if pressed[280]:
         map.scale_up()
     if pressed[281]:
         map.scale_down()
 
+    if len(search_field.written_words):
+        search = search_field.written_words[0]
+        search_field.written_words = []
+        x, y = get_coords(search)
+        map.coords = f'{x},{y}'
+        map.pt.append(f'{x},{y},pmgrs')
 pygame.quit()
 
