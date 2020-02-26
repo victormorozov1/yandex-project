@@ -2,6 +2,7 @@ import requests
 import sys
 import pygame
 import os
+from convert_image import convert_image
 
 
 def get_coords(address):
@@ -22,16 +23,13 @@ def get_coords(address):
 def get_map(coords, scale='0.1,0.1'):
     api_address = "https://static-maps.yandex.ru/1.x/?"
     response = requests.get(f'{api_address}l=map&ll={coords}&spn={scale}')
-    map_file = "map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    return map_file
+    return convert_image(response.content)
 
 
 moscow_coords = get_coords('Москва')
 pygame.init()
 screen = pygame.display.set_mode((600, 450))
-screen.blit(pygame.image.load(get_map(moscow_coords)), (0, 0))
+screen.blit(get_map(moscow_coords), (0, 0))
 pygame.display.flip()
 is_running = True
 while is_running:
