@@ -6,9 +6,11 @@ from convert_image import convert_image
 
 
 class Map:
-    def __init__(self, coords, scale):
+    def __init__(self, coords, z, z_change=1):
         self.coords = coords
-        self.scale = scale
+        self.z = z
+        self.z_change = z_change
+        self.screen = pygame.display.set_mode((600, 450))
 
     def get_coords(self, address):
         api_address = 'https://geocode-maps.yandex.ru/1.x'
@@ -26,23 +28,38 @@ class Map:
 
     def get_map(self):
         api_address = "https://static-maps.yandex.ru/1.x/?"
-        response = requests.get(f'{api_address}l=map&ll={self.coords}&spn={self.scale}')
+        response = requests.get(f'{api_address}l=map&ll={self.coords}&z={self.z}')
         return convert_image(response.content)
 
     def move_map(self):
         pass
 
+    def scale_up(self):
+        self.z = str(min(13, int(self.z) + self.z_change))
 
-map = Map('54.689,55.879', '0.1,0.1')
+    def scale_down(self):
+        self.z = str(max(0, int(self.z) - self.z_change))
+
+    def draw(self):
+        self.screen.blit(map.get_map(), (0, 0))
+        pygame.display.update()
+
+
+map = Map('54.689,55.879', '10')
 pygame.init()
-screen = pygame.display.set_mode((600, 450))
-screen.blit(map.get_map(), (0, 0))
-pygame.display.flip()
+
 is_running = True
 while is_running:
+    map.draw()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
+    pressed = pygame.key.get_pressed()
+    if pressed[pygame.K_UP]:
+        map.scale_up()
+    if pressed[pygame.K_DOWN]:
+        map.scale_down()
+
 
 pygame.quit()
 
