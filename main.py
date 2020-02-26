@@ -2,13 +2,16 @@ import requests
 import sys
 import pygame
 import os
+from convert_image import convert_image
 
 
 class Map:
-    def __init__(self, coords, scale):
+    def __init__(self, coords, z, z_change=1, move_scale=0.1):
         self.coords = coords
-        self.scale = scale
-        self.move_scale = float(self.scale.split(',')[0]) / 2
+        self.z = z
+        self.z_change = z_change
+        self.screen = pygame.display.set_mode((600, 450))
+        self.move_scale = move_scale
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -37,13 +40,8 @@ class Map:
 
     def get_map(self):
         api_address = "https://static-maps.yandex.ru/1.x/?"
-        response = requests.get(f'{api_address}l=map&ll={self.coords}&spn={self.scale}')
-        if response:
-            map_file = "map.png"
-            with open(map_file, "wb") as file:
-                file.write(response.content)
-            return map_file
-        return False
+        response = requests.get(f'{api_address}l=map&ll={self.coords}&z={self.z}')
+        return convert_image(response.content)
 
     def move(self, delta_y, delta_x):
         coords = [float(coord) for coord in self.coords.split(',')]
@@ -51,21 +49,32 @@ class Map:
         coords[1] += delta_y
         self.coords = ','.join([str(coord) for coord in coords])
 
+    def scale_up(self):
+        self.z = str(min(13, int(self.z) + self.z_change))
 
-map = Map('37.61556,55.75222', '1,1')
+    def scale_down(self):
+        self.z = str(max(0, int(self.z) - self.z_change))
+
+    def draw(self):
+        self.screen.blit(map.get_map(), (0, 0))
+        pygame.display.update()
+
+
+map = Map('54.689,55.879', '10')
 pygame.init()
-screen = pygame.display.set_mode((600, 450))
-if map.get_map():
-    screen.blit(pygame.image.load(map.get_map()), (0, 0))
-    pygame.display.flip()
+
 is_running = True
 while is_running:
+    map.draw()
     for event in pygame.event.get():
+        map.handle_event(event)
         if event.type == pygame.QUIT:
             is_running = False
-        if event.type == pygame.KEYDOWN:
-            map.handle_event(event)
-            if map.get_map():
-                screen.blit(pygame.image.load(map.get_map()), (0, 0))
-                pygame.display.flip()
+    pressed = pygame.key.get_pressed()
+    if pressed[280]:
+        map.scale_up()
+    if pressed[281]:
+        map.scale_down()
+
 pygame.quit()
+
